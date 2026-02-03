@@ -393,7 +393,7 @@ class AvroSchema
                                                    $type));
     }
     elseif (self::is_primitive_type($avro))
-      return new AvroPrimitiveSchema($avro, null, [], true);
+      return new AvroPrimitiveSchema($avro, null, [], false);
     else
       throw new AvroSchemaParseException(
         sprintf('%s is not a schema we know about.',
