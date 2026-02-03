@@ -602,4 +602,61 @@ class SchemaTest extends \PHPUnit\Framework\TestCase
     $this->assertEquals($schema->logical_type(), "decimal");
     $this->assertEquals($schema->extra_attributes(), ["precision" => 4, "scale" => 2]);
   }
+
+  /**
+   * Test that empty map default value {} is preserved as object, not converted to array []
+   */
+  function test_empty_map_default_preserved_as_object()
+  {
+    $json = '{"type": "record", "name": "Test", "fields": [{"name": "properties", "type": {"type": "map", "values": "string"}, "default": {}}]}';
+    $schema = AvroSchema::parse($json);
+
+    $output = strval($schema);
+
+    $this->assertStringContainsString('"default":{}', $output,
+      'Empty map default should be serialized as {} (object), not [] (array)');
+    $this->assertStringNotContainsString('"default":[]', $output,
+      'Empty map default should NOT be serialized as [] (array)');
+  }
+
+  /**
+   * Test non-empty map default preserves key-value pairs
+   */
+  function test_non_empty_map_default_preserved()
+  {
+    $json = '{"type": "record", "name": "Test", "fields": [{"name": "properties", "type": {"type": "map", "values": "string"}, "default": {"key": "value"}}]}';
+    $schema = AvroSchema::parse($json);
+
+    $output = strval($schema);
+
+    $this->assertStringContainsString('"default":{"key":"value"}', $output);
+  }
+
+  /**
+   * Test empty record default is preserved as {}
+   */
+  function test_empty_record_default_preserved_as_object()
+  {
+    $json = '{"type": "record", "name": "Outer", "fields": [{"name": "inner", "type": {"type": "record", "name": "Inner", "fields": [{"name": "x", "type": "int", "default": 0}]}, "default": {}}]}';
+    $schema = AvroSchema::parse($json);
+
+    $output = strval($schema);
+
+    $this->assertMatchesRegularExpression('/"name":"inner".*"default":\{\}/', $output,
+      'Empty record default should be serialized as {} (object)');
+  }
+
+  /**
+   * Test nested map inside record default
+   */
+  function test_nested_map_default_preserved()
+  {
+    $json = '{"type": "record", "name": "Test", "fields": [{"name": "data", "type": {"type": "record", "name": "Data", "fields": [{"name": "props", "type": {"type": "map", "values": "string"}}]}, "default": {"props": {}}}]}';
+    $schema = AvroSchema::parse($json);
+
+    $output = strval($schema);
+
+    $this->assertStringContainsString('"props":{}', $output,
+      'Nested empty map should be serialized as {} (object)');
+  }
 }
